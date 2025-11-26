@@ -48,7 +48,12 @@ body {
 .brand-logo {
   width: 32px;
   height: 32px;
+  margin-right: 8px;
+  display: inline-block;
+  visibility: visible;
+  object-fit: contain;
 }
+
 
 .brand-name {
   font-family: 'Poppins', 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -576,6 +581,105 @@ body {
   font-size: 2rem;
 }
 
+/* Redesigned Favorites Weather Cards */
+.fav-weather-card {
+  position: relative;
+  background: radial-gradient(1200px 400px at 0% 0%, rgba(255,255,255,0.06), rgba(255,255,255,0.02) 40%, rgba(0,0,0,0.2) 100%),
+              linear-gradient(135deg, #0a1930, #0a1030 60%, #091423);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 18px 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  color: #e6f0ff;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  overflow: hidden;
+}
+
+.fav-weather-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 16px 36px rgba(0,0,0,0.45);
+}
+
+.fav-card-delete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+  border-radius: 8px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.fav-card-delete:hover { 
+  background: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.5);
+  transform: scale(1.05);
+}
+
+.fav-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.fav-card-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fav-card-city {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #ffffff;
+}
+
+.fav-card-condition {
+  color: #bcd1ff;
+  font-size: 0.9rem;
+}
+
+.fav-card-range {
+  color: #9cb5ff;
+  font-size: 0.85rem;
+}
+
+.fav-card-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fav-card-temp {
+  font-size: 2.25rem;
+  line-height: 1;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.fav-card-temp .deg {
+  margin-left: 4px;
+  font-size: 0.9rem;
+  color: #c7d2fe;
+}
+
+/* Responsive tweaks */
+@media (min-width: 1024px) {
+  .favorites-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .fav-card-temp { font-size: 2rem; }
+  .fav-weather-card { padding: 16px; }
+}
+
 .favorite-description {
   color: #cbd5e1;
   font-size: 0.9rem;
@@ -947,43 +1051,3 @@ body {
   box-shadow: 0 10px 25px rgba(0,0,0,0.2);
   font-weight: 600;
 }
-
-.map-wrapper {
-  position: relative;
-}
-
-.back-btn {
-  position: fixed;
-  margin: 30px;
-  top: 12px;
-  right: 12px;
-  z-index: 1200;
-  background: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-weight: bold;
-  cursor: pointer;
-}
-.back-btn:hover { background: #eee; }
-
-.map-panel {
-  position: fixed;
-  margin: 30px;
-  left: 12px;
-  top: 12px;
-  width: 220px;
-  background: rgba(10,20,30,0.75);
-  color: #fff;
-  padding: 12px;
-  border-radius: 10px;
-  z-index: 1000;
-}
-.map-panel h3 { margin: 0 0 8px 0; font-size: 16px; }
-.base-switch button { margin-right:8px; padding:6px 8px; border-radius:6px; border:none; cursor:pointer; background:rgba(255,255,255,0.08); color:#fff;}
-.base-switch button.active { background: rgba(255,255,255,0.18); font-weight: 600; }
-.layer-list { margin-top: 10px; display:flex; flex-direction:column; gap:8px; }
-
-
-
-

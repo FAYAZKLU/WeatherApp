@@ -28,7 +28,7 @@ const WeatherAlerts = ({ alerts }) => {
       const windSpeed = weatherData.windSpeed;
 
       // Extreme heat
-      if (temp > 30) {
+      if (temp > 35) {
         detectedAlerts.push({
           id: 'heat-current',
           type: 'extreme_heat',

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Trash2 } from 'lucide-react';
-import FavoriteCard from '../components/FavoriteCard';
+// Replaced FavoriteCard with inline card layout in this page per new design
 import AddFavorite from '../components/AddFavorite';
-import { useFavorites } from '../hooks/useFavorites';
+import { useFavorites } from "../hooks/useFavorites";
 import { useWeather } from '../hooks/useWeather';
 import WeatherCard from '../components/WeatherCard';
 import ForecastCard from '../components/ForecastCard';
@@ -16,6 +16,9 @@ const FavoritesPage = ({ onBack, onSelectLocation, currentWeather }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [pendingAdd, setPendingAdd] = useState(false);
   const [toastOpen, setToastOpen] = useState(false);
+  const [favoriteWeather, setFavoriteWeather] = useState({}); // id -> weather info
+
+  console.log("Favorites from backend:", favorites);
 
   const handleAddFavorite = () => {
     if (currentWeather) {
@@ -43,17 +46,53 @@ const FavoritesPage = ({ onBack, onSelectLocation, currentWeather }) => {
     }
   }, [pendingAdd, weatherData, addFavorite]);
 
+  // Fetch per-city current weather for each favorite
+  useEffect(() => {
+    if (!favorites || favorites.length === 0) {
+      setFavoriteWeather({});
+      return;
+    }
+    const apiKey = import.meta.env.VITE_OPEN_WEATHER_API_KEY;
+    const controller = new AbortController();
+    const loadAll = async () => {
+      try {
+        const results = await Promise.all(
+          favorites.map(async (fav) => {
+            if (!fav?.cityName) return [fav.id, null];
+            const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(fav.cityName)}&units=metric&appid=${apiKey}`;
+            const res = await fetch(url, { signal: controller.signal });
+            if (!res.ok) return [fav.id, null];
+            const data = await res.json();
+            const info = {
+              temp: Math.round(data.main?.temp ?? 0),
+              min: Math.round(data.main?.temp_min ?? 0),
+              max: Math.round(data.main?.temp_max ?? 0),
+              condition: data.weather?.[0]?.main || '',
+              description: data.weather?.[0]?.description || ''
+            };
+            return [fav.id, info];
+          })
+        );
+        const map = Object.fromEntries(results);
+        setFavoriteWeather(map);
+      } catch (e) {
+        // ignore aborts
+      }
+    };
+    loadAll();
+    return () => controller.abort();
+  }, [favorites]);
+
   const handleSelectLocation = (favorite) => {
-    fetchWeatherData(favorite.location);
+    // ✅ Use cityName instead of favorite.location (matches backend model)
+    fetchWeatherData(favorite.cityName);
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -62,16 +101,14 @@ const FavoritesPage = ({ onBack, onSelectLocation, currentWeather }) => {
     visible: {
       opacity: 1,
       y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut"
-      }
+      transition: { duration: 0.5, ease: "easeOut" }
     }
   };
 
   return (
     <div className="container">
       <Toast open={toastOpen} onClose={() => setToastOpen(false)} message="Saved to Favorites" />
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -94,7 +131,7 @@ const FavoritesPage = ({ onBack, onSelectLocation, currentWeather }) => {
             <p className="subtitle">Your saved weather locations</p>
           </div>
         </div>
-        
+
         {favorites.length > 0 && (
           <motion.button
             onClick={clearFavorites}
@@ -135,41 +172,57 @@ const FavoritesPage = ({ onBack, onSelectLocation, currentWeather }) => {
 
       {/* Favorites + Details */}
       <div className="weather-content">
+        {/* TEMP: Debug favorites count and names */}
+        {favorites && favorites.length > 0 && (
+          <div style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>
+            {`Favorites: ${favorites.length} -> `}
+            {favorites.map(f => f.cityName).join(', ')}
+          </div>
+        )}
         <div>
-          <AnimatePresence>
-            {favorites.length > 0 ? (
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="favorites-grid"
-              >
-                {favorites.map((favorite) => (
-                  <motion.div
-                    key={favorite.id}
-                    variants={itemVariants}
-                    layout
-                  >
-                    <FavoriteCard
-                      favorite={favorite}
-                      onRemove={removeFavorite}
-                      onSelect={handleSelectLocation}
-                    />
+          {favorites.length > 0 ? (
+            <div className="favorites-grid">
+              {favorites.map((fav) => {
+                const w = favoriteWeather[fav.id];
+                return (
+                  <motion.div key={fav.id} variants={itemVariants} initial="hidden" animate="visible" layout>
+                    <div className="fav-weather-card" onClick={() => handleSelectLocation(fav)}>
+                      <button
+                        className="fav-card-delete"
+                        title="Remove"
+                        onClick={(e) => { e.stopPropagation(); removeFavorite(fav.id); }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <div className="fav-card-content">
+                        <div className="fav-card-left">
+                          <div className="fav-card-city">{fav.cityName}</div>
+                          <div className="fav-card-condition">{w?.condition || '—'}</div>
+                          {(w?.min !== undefined && w?.max !== undefined) && (
+                            <div className="fav-card-range">{w.min} ~ {w.max}°C</div>
+                          )}
+                        </div>
+                        <div className="fav-card-right">
+                          <div className="fav-card-temp">{w?.temp ?? '—'}<span className="deg">°C</span></div>
+                        </div>
+                      </div>
+                    </div>
                   </motion.div>
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="empty-favorites"
-              >
-                <p>No favorite locations yet. Add some to get started!</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                );
+              })}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="empty-favorites"
+            >
+              <p>No favorite locations yet. Add some to get started!</p>
+            </motion.div>
+          )}
         </div>
 
+        {/* Weather details for selected location */}
         {weatherData && (
           <motion.div variants={itemVariants}>
             <WeatherCard weatherData={weatherData} />

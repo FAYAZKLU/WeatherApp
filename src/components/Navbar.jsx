@@ -26,15 +26,11 @@ const Navbar = ({ onNavigate }) => {
     if (onNavigate) onNavigate('weather');
   };
 
-  const goMap = () => {
-    if (onNavigate) onNavigate('map');
-  };
-
   return (
     <div className="navbar">
       <div className="navbar-inner">
         <button className="brand" onClick={goWeather} aria-label="Go to Weather">
-          <img src="/logo.svg" alt="Atmos logo" className="brand-logo" />
+          <img src="/WeatherApp/logo.svg" alt="Atmos logo" className="brand-logo" />
           <span className="brand-name">Atmos</span>
         </button>
 
@@ -60,7 +56,6 @@ const Navbar = ({ onNavigate }) => {
             My Location
           </button>
            <button type="button" className="btn fav-bar" onClick={goFavorites}>My Cities</button>
-          <button className="btn nav-weather" onClick={goMap}>Weather Map</button>
         </div>
       </div>
     </div>
@@ -68,5 +63,6 @@ const Navbar = ({ onNavigate }) => {
 };
 
 export default Navbar;
+
 
 

@@ -1,90 +1,72 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from "react";
+import favoriteService from "../services/favoriteService"; // ✅ no { }
 
 export const useFavorites = () => {
   const [favorites, setFavorites] = useState([]);
-  const [hasLoadedFromStorage, setHasLoadedFromStorage] = useState(false);
 
-  // Load favorites from localStorage on mount and whenever storage changes
   useEffect(() => {
-    const load = () => {
-      try {
-        const raw = localStorage.getItem('weatherFavorites');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) {
-            setFavorites(parsed);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading favorites:', error);
-      }
-    };
-
-    load();
-    setHasLoadedFromStorage(true);
-    const onStorage = (e) => {
-      if (e.key === 'weatherFavorites') {
-        load();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    loadFavorites();
   }, []);
 
-  // Save favorites to localStorage whenever favorites change
-  useEffect(() => {
-    if (!hasLoadedFromStorage) return; // avoid overwriting storage on first mount
+  const loadFavorites = async () => {
     try {
-      localStorage.setItem('weatherFavorites', JSON.stringify(favorites));
+      const data = await favoriteService.getAll();
+      // Normalize fields to camelCase expected by UI
+      const normalized = (Array.isArray(data) ? data : []).map((d) => ({
+        id: d.id,
+        cityName: d.cityName || d.city_name || d.city || '',
+        country: d.country || d.country_code || '',
+        latitude: d.latitude ?? d.lat ?? null,
+        longitude: d.longitude ?? d.lon ?? null,
+        createdAt: d.created_at || d.createdAt || null,
+      }));
+      setFavorites(normalized);
     } catch (error) {
-      console.error('Error saving favorites:', error);
+      console.error("Error loading favorites:", error);
     }
-  }, [favorites, hasLoadedFromStorage]);
+  };
 
-  const addFavorite = useCallback((weatherData) => {
-    if (!weatherData) return;
-
-    const normalizedLocation = (weatherData.location || '').trim();
-
-    const favorite = {
-      id: `${normalizedLocation.toLowerCase().replace(/\s+/g, '-')}`,
-      location: normalizedLocation,
-      temperature: weatherData.temperature,
-      description: weatherData.description,
-      weatherIcon: weatherData.weatherIcon,
-      humidity: weatherData.humidity,
-      windSpeed: weatherData.windSpeed,
-      addedAt: new Date().toISOString(),
-    };
-
-    setFavorites(prev => {
-      // Check if already exists
-      const exists = prev.some(fav => fav.location?.toLowerCase() === favorite.location?.toLowerCase());
-      if (exists) return prev;
-      const next = [...prev, favorite];
-      try {
-        localStorage.setItem('weatherFavorites', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
-
-  const removeFavorite = useCallback((id) => {
-    setFavorites(prev => {
-      const next = prev.filter(fav => fav.id !== id);
-      try {
-        localStorage.setItem('weatherFavorites', JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  }, []);
-
-  const clearFavorites = useCallback(() => {
-    setFavorites([]);
+  const addFavorite = async (favoriteData) => {
     try {
-      localStorage.removeItem('weatherFavorites');
-    } catch {}
-  }, []);
+      const payload = {
+        cityName: favoriteData.name || favoriteData.location?.split(",")[0],
+        country: favoriteData.sys?.country || favoriteData.location?.split(",")[1],
+        latitude: favoriteData.coord?.lat || favoriteData.latitude,
+        longitude: favoriteData.coord?.lon || favoriteData.longitude,
+      };
+      const saved = await favoriteService.add(payload);
+      // Normalize saved item too
+      const normalized = {
+        id: saved.id,
+        cityName: saved.cityName || saved.city_name || payload.cityName,
+        country: saved.country || payload.country,
+        latitude: saved.latitude ?? payload.latitude,
+        longitude: saved.longitude ?? payload.longitude,
+        createdAt: saved.created_at || saved.createdAt || null,
+      };
+      setFavorites((prev) => [...prev, normalized]);
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+    }
+  };
+
+  const removeFavorite = async (id) => {
+    try {
+      await favoriteService.remove(id);
+      setFavorites((prev) => prev.filter((f) => f.id !== id));
+    } catch (error) {
+      console.error("Error removing favorite:", error);
+    }
+  };
+
+  const clearFavorites = async () => {
+    try {
+      await favoriteService.clearAll();
+      setFavorites([]);
+    } catch (error) {
+      console.error("Error clearing favorites:", error);
+    }
+  };
 
   return {
     favorites,
@@ -93,5 +75,3 @@ export const useFavorites = () => {
     clearFavorites,
   };
 };
-
-export default useFavorites;
